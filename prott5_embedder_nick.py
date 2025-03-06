@@ -8,6 +8,7 @@ Created on Wed Sep 23 18:33:22 2020
 
 import argparse
 import time
+import os
 import logging
 from pathlib import Path
 
@@ -15,7 +16,14 @@ import torch
 import h5py
 from transformers import T5EncoderModel, T5Tokenizer
 
-logging.basicConfig(filename='/lisc/scratch/cube/pullen/testing.log', level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+# TODO
+# This should probably become an arg that is parsed
+log_file = '/lisc/scratch/cube/pullen/testing.log'
+# Very minor, but if the log file exists, we open it and write a newline to separate the appearance jobs
+if os.path.exists(log_file):
+    with open(log_file, "a") as f:
+        f.write("\n")
+logging.basicConfig(filename=log_file, level=logging.INFO, format='%(asctime)s - %(levelname)s - [Thread: %(threadName)s] - %(message)s')
 
 print("Imported packages....")
 device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
@@ -117,25 +125,32 @@ def get_embeddings(seq_path,
             # Unpack the current batch
             pdb_ids, seqs, seq_lens = zip(*batch)
             batch = list()
+            batch_count += 1
 
             # Filter out sequences that have already been processed
             to_process = [(pid, seq, s_len) for pid, seq, s_len in zip(pdb_ids, seqs, seq_lens) if pid not in processed_ids]
     
             # Calculate total batch length using all sequences in the batch (for logging)
+            # TODO this sum should probably only be for sequences that will be processed
             total_batch_length = sum(seq_lens)
-            id_and_lengths = ", ".join(f"{pid} (Length={s_len} AAs)" for pid, s_len in zip(pdb_ids, seq_lens))
+            #id_and_lengths = ", ".join(f"{pid} (Length={s_len} AAs)" for pid, s_len in zip(pdb_ids, seq_lens))
+#            id_and_lengths = "\n".join(f"Batch {batch_count}: {pid} (L={s_len})" for pid, s_len in zip(pdb_ids, seq_lens))
+            batch_id_and_lengths = "\n".join(f"Batch {batch_count}: {pid} (L={s_len})" for pid, s_len in zip(pdb_ids, seq_lens))
 
-            batch_count += 1
             if not to_process:
                 # If all sequences in this batch have been processed, log this and skip computation
-                logging.info("Batch %d already processed: Total batch length: %d, Processed %d sequences. IDs: %s",
-                             batch_count, total_batch_length, len(pdb_ids), id_and_lengths)
+#                logging.info("Batch %d already processed: Total batch length: %d, Already processed %d sequences. IDs: %s",
+#                             batch_count, total_batch_length, len(pdb_ids), id_and_lengths)
+                logging.info("Batch %d already processed: Total batch length: %d, Already processed %d sequences.",
+                             batch_count, total_batch_length, len(pdb_ids))
+                logging.info("Batch %d IDs:\n%s", batch_count, batch_id_and_lengths)
+
                 continue
     
             # These sequences need processing
             proc_ids, proc_seqs, proc_seq_lens = zip(*to_process)
 
-            token_encoding = vocab.batch_encode_plus(seqs, add_special_tokens=True, padding="longest")
+            token_encoding = vocab.batch_encode_plus(proc_seqs, add_special_tokens=True, padding="longest")
             input_ids      = torch.tensor(token_encoding['input_ids']).to(device)
             attention_mask = torch.tensor(token_encoding['attention_mask']).to(device)
             
@@ -149,7 +164,7 @@ def get_embeddings(seq_path,
             
             # Prepare checkpointing: write the embeddings of this batch immediately
             total_batch_length = sum(seq_lens)
-            id_and_lengths = ", ".join(f"{pid} (L={s_len})" for pid, s_len in zip(pdb_ids, seq_lens))
+            new_ids_and_lengths = "\n".join(f"Batch {batch_count}: {pid} (L={s_len})" for pid, s_len in zip(proc_ids, proc_seq_lens))
 
             # batch-size x seq_len x embedding_dim
             # extra token is added at the end of the seq
@@ -164,16 +179,17 @@ def get_embeddings(seq_path,
                 
                     # Log the first embedding of the batch
                     # Can probably remove later when all works
-                    if batch_idx == 0:
-                        logging.info("Embedded protein %s with length %d to emb. of shape: %s",
-                                     identifier, s_len, emb.shape)
+                    #if batch_idx == 0:
+                    #    logging.info("Embedded protein %s with length %d to emb. of shape: %s",
+                    #                 identifier, s_len, emb.shape)
                     hf.create_dataset(identifier, data=emb.detach().cpu().numpy().squeeze())
                     new_embeddings_count += 1
                     #print("new_embeddings_count=", new_embeddings_count)
 
             # Log after processing each batch
-            logging.info("Completed batch %d: Total batch length: %d, Processed %d sequences. IDs: %s",
-                         batch_count, total_batch_length, len(proc_ids), id_and_lengths)
+            logging.info("Completed batch %d: Total batch length: %d, Processed %d sequences.",
+                         batch_count, total_batch_length, len(proc_ids))
+            logging.info("Batch %d IDs:\n%s", batch_count, new_ids_and_lengths)
 
     end = time.time()
 
