@@ -172,11 +172,6 @@ def get_embeddings(seq_path,
                     if per_protein:
                         emb = emb.mean(dim=0)
                 
-                    # Log the first embedding of the batch
-                    # Can probably remove later when all works
-                    #if batch_idx == 0:
-                    #    logging.info("Embedded protein %s with length %d to emb. of shape: %s",
-                    #                 identifier, s_len, emb.shape)
                     hf.create_dataset(identifier, data=emb.detach().cpu().numpy().squeeze())
                     new_embeddings_count += 1
                     #print("new_embeddings_count=", new_embeddings_count)
@@ -250,5 +245,6 @@ if __name__ == '__main__':
     torch.cuda.empty_cache()
     print('Number of threads = {}'.format(torch.get_num_threads()))
     main()
+    logging.info("=========DONE============")
 # Example to run:
 # python prott5_embedder_nick.py --input Ecoli/494lines.fasta --output Ecoli/protein_embeddings.h5 --log /lisc/scratch/cube/pullen/testing.log
