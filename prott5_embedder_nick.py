@@ -4,6 +4,8 @@
 Created on Wed Sep 23 18:33:22 2020
 
 @author: mheinzinger
+
+Refactored 2025-03-07 by Nick Pullen @ univie
 """
 
 import argparse
@@ -16,16 +18,6 @@ import torch
 import h5py
 from transformers import T5EncoderModel, T5Tokenizer
 
-# TODO
-# This should probably become an arg that is parsed
-log_file = '/lisc/scratch/cube/pullen/testing.log'
-# Very minor, but if the log file exists, we open it and write a newline to separate the appearance jobs
-if os.path.exists(log_file):
-    with open(log_file, "a") as f:
-        f.write("****************************************************************************************************************************\n\n")
-logging.basicConfig(filename=log_file, level=logging.INFO, format='%(asctime)s - %(levelname)s - [Thread: %(threadName)s] - %(message)s')
-
-print("Imported packages....")
 device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 print("Using device: {}".format(device))
 
@@ -64,7 +56,7 @@ def read_fasta( fasta_path ):
                 uniprot_id = uniprot_id.replace("/","_").replace(".","_")
                 sequences[ uniprot_id ] = ''
             else:
-                # repl. all whie-space chars and join seqs spanning multiple lines
+                # repl. all white-space chars and join seqs spanning multiple lines
                 sequences[ uniprot_id ] += ''.join( line.split() ).upper().replace("-","") # drop gaps and cast to upper-case
                 
     return sequences
@@ -85,10 +77,10 @@ def get_embeddings(seq_path,
     seq_dict = read_fasta( seq_path )
     model, vocab = get_T5_model(model_dir)
 
-    print('########################################')
-    print('Example sequence: {}\n{}'.format( next(iter(
-            seq_dict.keys())), next(iter(seq_dict.values()))) )
-    print('########################################')
+#    print('########################################')
+#    print('Example sequence: {}\n{}'.format( next(iter(
+#            seq_dict.keys())), next(iter(seq_dict.values()))) )
+#    print('########################################')
     print('Total number of sequences: {}'.format(len(seq_dict)))
 
     avg_length = sum([ len(seq) for _, seq in seq_dict.items()]) / len(seq_dict)
@@ -131,7 +123,7 @@ def get_embeddings(seq_path,
             to_process = [(pid, seq, s_len) for pid, seq, s_len in zip(pdb_ids, seqs, seq_lens) if pid not in processed_ids]
     
             # Calculate total batch length using all sequences in the batch (for logging)
-            # TODO this sum should probably only be for sequences that will be processed
+            # should be lower than max_residues
             total_batch_length = sum(seq_lens)
             all_ids_status = "\n".join(
                 f"Batch {batch_count}: {'NEW' if pid not in processed_ids else 'EXISTING'} - {pid} (L={s_len})"
@@ -192,13 +184,13 @@ def get_embeddings(seq_path,
 
     print('\n############# OVERALL STATS #############')
     print('Total new embeddings processed in this run: {}'.format(new_embeddings_count))
-    print('Total time: {:.2f}[s]; time/prot: {:.4f}[s]; avg. len= {:.2f}'.format( 
+    print('Total time: {:.2f}[s]; time/prot: {:.4f}[s]; avg. len of all= {:.2f}'.format( 
             end-start, (end-start)/new_embeddings_count if new_embeddings_count > 0 else 0, avg_length))
     return True
 
 
 def create_arg_parser():
-    """"Creates and returns the ArgumentParser object."""
+    """Creates and returns the ArgumentParser object."""
 
     # Instantiate the parser
     parser = argparse.ArgumentParser(description=( 
@@ -209,19 +201,24 @@ def create_arg_parser():
     parser.add_argument( '-i', '--input', required=True, type=str,
                     help='A path to a fasta-formatted text file containing protein sequence(s).')
 
-    # Optional positional argument
+    # Required positional argument
     parser.add_argument( '-o', '--output', required=True, type=str, 
                     help='A path for saving the created embeddings as NumPy npz file.')
 
-    # Required positional argument
+    # Optional positional argument
     parser.add_argument('--model', required=False, type=str,
                     default=None,
                     help='A path to a directory holding the checkpoint for a pre-trained model' )
 
     # Optional argument
     parser.add_argument('--per_protein', type=int, 
-                    default=0,
-                    help="Whether to return per-residue embeddings (0: default) or the mean-pooled per-protein representation (1).")
+                    default=1,
+                    help="Whether to return per-residue embeddings (0) or the mean-pooled per-protein representation (1: default). \
+                          Changed from original!")
+
+    # Optional positional argument
+    parser.add_argument( '-l', '--log', required=False, type=str, 
+                    help='A path for saving a logging file. Otherwise written to stdout')
     return parser
 
 def main():
@@ -233,6 +230,13 @@ def main():
     model_dir  = Path( args.model ) if args.model is not None else None
 
     per_protein = False if int(args.per_protein)==0 else True
+    log_path = Path(args.log) if args.log is not None else None
+
+    # Very minor, but if the log file exists, we open it and write a newline to separate the appearance of jobs
+    if log_path is not None and os.path.exists(log_path):
+        with open(log_path, "a") as f:
+            f.write("****************************************************************************************************************************\n\n")
+    logging.basicConfig(filename=log_path, level=logging.INFO, format='%(asctime)s - %(levelname)s - [Thread: %(threadName)s] - %(message)s')
     
     get_embeddings( seq_path, emb_path, model_dir, per_protein=per_protein )
 
@@ -241,3 +245,5 @@ if __name__ == '__main__':
     torch.cuda.empty_cache()
     print('Number of threads = {}'.format(torch.get_num_threads()))
     main()
+# Example to run:
+# python prott5_embedder_nick.py --input Ecoli/494lines.fasta --output Ecoli/protein_embeddings.h5 --log /lisc/scratch/cube/pullen/testing.log
