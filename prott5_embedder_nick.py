@@ -137,13 +137,19 @@ def get_embeddings(seq_path,
                 f"Batch {batch_count}: {'NEW' if pid not in processed_ids else 'EXISTING'} - {pid} (L={s_len})"
                 for pid, s_len in zip(pdb_ids, seq_lens)
             )
-            logging.info("Batch %d: Total batch length: %d, %d new sequences, %d previous sequences.\n%s",
-                         batch_count, total_batch_length, len(to_process), len(pdb_ids) - len(to_process), all_ids_status)
 
+            log_message = (
+                f"Batch {batch_count}: Total batch length: {total_batch_length}, "
+                f"{len(to_process)} new sequences, {len(pdb_ids) - len(to_process)} previous sequences.\n"
+                f"IDs:\n{all_ids_status}\n"
+            )
+
+            # If no new sequences need processing, log the batch summary anyway and skip any computation
             if not to_process:
+                logging.info(log_message)
                 continue
     
-            # These sequences need processing
+            # These are the new sequences that need processing
             proc_ids, proc_seqs, proc_seq_lens = zip(*to_process)
 
             token_encoding = vocab.batch_encode_plus(proc_seqs, add_special_tokens=True, padding="longest")
@@ -178,9 +184,9 @@ def get_embeddings(seq_path,
                     new_embeddings_count += 1
                     #print("new_embeddings_count=", new_embeddings_count)
 
-            # Log after processing each batch
-            logging.info("Completed batch %d: Total batch length: %d, Processed %d new sequences.\n", 
-                    batch_count, total_batch_length, len(proc_ids))
+            # Append the completion details to the log message after processing each batch
+            log_message += f"Completed batch {batch_count}: Processed {len(proc_ids)} new sequences.\n"
+            logging.info(log_message)
 
     end = time.time()
 
