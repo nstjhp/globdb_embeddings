@@ -13,6 +13,7 @@ import time
 import os
 import logging
 from pathlib import Path
+import sys
 
 import torch
 import h5py
@@ -89,6 +90,10 @@ def get_embeddings(seq_path,
     
     print("Average sequence length: {}".format(avg_length))
     print("Number of sequences >{}: {}".format(max_seq_len, n_long))
+
+    # Here we flush all the prior print statements to stdout so we can check that sth is happening
+    # Otherwise this gets held in a buffer until job completion which is not very helpful
+    sys.stdout.flush()
 
     # Initialize counters
     batch_count = 0 # Batches for logging
@@ -184,7 +189,7 @@ def get_embeddings(seq_path,
 
     print('\n############# OVERALL STATS #############')
     print('Total new embeddings processed in this run: {}'.format(new_embeddings_count))
-    print('Total time: {:.2f}[s]; time/prot: {:.4f}[s]; avg. len of all= {:.2f}'.format( 
+    print('Total time: {:.2f}[s]; time/prot: {:.4f}[s]; avg. len of all proteins= {:.2f}'.format( 
             end-start, (end-start)/new_embeddings_count if new_embeddings_count > 0 else 0, avg_length))
     return True
 
