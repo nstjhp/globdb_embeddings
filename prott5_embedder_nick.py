@@ -157,7 +157,7 @@ def get_embeddings(seq_path,
                 with torch.no_grad():
                     embedding_repr = model(input_ids, attention_mask=attention_mask)
             except RuntimeError:
-                print("RuntimeError during embedding for {} (Length={} AAs). Try lowering batch size. ".format(proc_ids[-1], proc_seq_lens[-1]) +
+                print("Batch {} with total batch length {} RuntimeError during embedding for {} (Length={} AAs). Try lowering batch size. ".format(batch_count, total_batch_length, proc_ids[-1], proc_seq_lens[-1]) +
                       "If single sequence processing does not work, you need more vRAM to process your protein.")
                 continue
 
@@ -236,7 +236,7 @@ def main():
     if log_path is not None and os.path.exists(log_path):
         with open(log_path, "a") as f:
             f.write("****************************************************************************************************************************\n\n")
-    logging.basicConfig(filename=log_path, level=logging.INFO, format='%(asctime)s - %(levelname)s - [Thread: %(threadName)s] - %(message)s')
+    logging.basicConfig(filename=log_path, level=logging.INFO, format='%(asctime)s - %(levelname)s - [Process: %(process)d - %(message)s')
     
     get_embeddings( seq_path, emb_path, model_dir, per_protein=per_protein )
 
