@@ -157,8 +157,23 @@ def get_embeddings(seq_path,
                 with torch.no_grad():
                     embedding_repr = model(input_ids, attention_mask=attention_mask)
             except RuntimeError:
+                # We record which batch failed and (all) its constituent proteins
+                all_ids_status_fail = "\n".join(
+                    f"Batch {batch_count}: FAIL - {pid} (L={s_len})"
+                    for pid, s_len in zip(proc_ids, proc_seq_lens)
+                )
+                log_message = (
+                    f"Batch {batch_count}: Total batch length: {total_batch_length}, "
+                    f"{len(to_process)} new sequences, {len(pdb_ids) - len(to_process)} previous sequences.\n"
+                    f"IDs:\n{all_ids_status_fail}\n"
+                    f"FAIL: Batch {batch_count} encountered RuntimeError and will be skipped.\n"
+                )
+                # Save FAILs to log as well so that all proteins will have either NEW, EXISTING or FAIL in the log file
+                logging.info(log_message)
+                # This will go to the .out file and should indicate the exact protein that failed in the batch
                 print("Batch {} with total batch length {} RuntimeError during embedding for {} (Length={} AAs). Try lowering batch size. ".format(batch_count, total_batch_length, proc_ids[-1], proc_seq_lens[-1]) +
                       "If single sequence processing does not work, you need more vRAM to process your protein.")
+                sys.stdout.flush()
                 continue
 
             # batch-size x seq_len x embedding_dim
