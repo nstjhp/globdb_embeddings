@@ -234,6 +234,13 @@ def create_arg_parser():
     # Optional positional argument
     parser.add_argument( '-l', '--log', required=False, type=str, 
                     help='A path for saving a logging file. Otherwise written to stdout')
+
+    parser.add_argument('--max_residues', type=int, default=4000,
+                        help='Number of cumulative residues per batch (default: 4000)')
+    parser.add_argument('--max_seq_len', type=int, default=1000,
+                        help='Max sequence length after which we switch to single-sequence processing (default: 1000)')
+    parser.add_argument('--max_batch', type=int, default=100,
+                        help='Maximum number of sequences per batch (default: 100)')    
     return parser
 
 def main():
@@ -247,13 +254,18 @@ def main():
     per_protein = False if int(args.per_protein)==0 else True
     log_path = Path(args.log) if args.log is not None else None
 
+    max_residues = args.max_residues
+    max_seq_len  = args.max_seq_len
+    max_batch    = args.max_batch
+
     # Very minor, but if the log file exists, we open it and write a newline to separate the appearance of jobs
     if log_path is not None and os.path.exists(log_path):
         with open(log_path, "a") as f:
             f.write("****************************************************************************************************************************\n\n")
-    logging.basicConfig(filename=log_path, level=logging.INFO, format='%(asctime)s - %(levelname)s - [Process: %(process)d - %(message)s')
+    logging.basicConfig(filename=log_path, level=logging.INFO, format='%(asctime)s - %(levelname)s - Process: %(process)d - %(message)s')
     
-    get_embeddings( seq_path, emb_path, model_dir, per_protein=per_protein )
+    get_embeddings( seq_path, emb_path, model_dir, per_protein=per_protein, 
+                    max_residues=max_residues, max_seq_len=max_seq_len, max_batch=max_batch)
 
 if __name__ == '__main__':
     print("Starting...")
@@ -262,4 +274,4 @@ if __name__ == '__main__':
     main()
     logging.info("=========DONE============")
 # Example to run:
-# python prott5_embedder_nick.py --input Ecoli/494lines.fasta --output Ecoli/protein_embeddings.h5 --log /lisc/scratch/cube/pullen/testing.log
+# python prott5_embedder_nick.py --input Ecoli/494lines.fasta --output Ecoli/protein_embeddings.h5 --log /lisc/scratch/cube/pullen/testing.log --max_residues 16000 --max_seq_len 8000 --max_batch 100
