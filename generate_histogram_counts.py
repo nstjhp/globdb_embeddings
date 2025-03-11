@@ -61,7 +61,7 @@ def generate_histogram_table(input_fasta, bin_size, threshold = 4000, save_table
 
     # Save the table to a file
     if save_table:
-        output_file = input_fasta.replace('.txt', f'_histogram_bin{bin_size}.csv')
+        output_file = f"{input_fasta}_histogram_bin{bin_size}.csv"
         histogram_table.to_csv(output_file, index=False)
         print(f"Histogram table saved to {output_file}")
     
@@ -74,9 +74,10 @@ if __name__ == "__main__":
     parser.add_argument('input_file', type=str, help='Path to the input text file (e.g. human_length_dist.txt)')
     parser.add_argument('bin_size', type=int, help='Bin size for the histogram (e.g., 2000)')
     parser.add_argument('--threshold', type=int, default=4000, help='Threshold for counting proteins above a certain length (default: 4000)')
+    parser.add_argument('--save_table', action="store_true", help='Save the table as a CSV file? Include this flag for yes, leave off for no')
 
     # Parse arguments
     args = parser.parse_args()
 
     # Call the function with the provided arguments
-    generate_histogram_table(args.input_file, args.bin_size, args.threshold)
+    generate_histogram_table(args.input_file, args.bin_size, args.threshold, args.save_table)
