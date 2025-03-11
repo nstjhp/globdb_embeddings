@@ -99,6 +99,14 @@ def get_embeddings(seq_path,
     batch_count = 0 # Batches for logging
     new_embeddings_count = 0  # How many new embeddings were processed
 
+    # Checkpointing - Open the H5 file to get the already processed IDs
+    try:
+        with h5py.File(str(emb_path), "r") as hf:
+            processed_ids = set(hf.keys())
+    except OSError:
+        # File doesn't exist yet, so no IDs have been processed
+        processed_ids = set()
+
     start = time.time()
     batch = list()
     for seq_idx, (pdb_id, seq) in enumerate(seq_dict,1):
@@ -111,14 +119,6 @@ def get_embeddings(seq_path,
         # avoid that batches with (n_res_batch > max_residues) get processed 
         n_res_batch = sum([ s_len for  _, _, s_len in batch ]) + seq_len 
         if len(batch) >= max_batch or n_res_batch>=max_residues or seq_idx==len(seq_dict) or seq_len>max_seq_len:
-            # Checkpointing - Open the H5 file to get the already processed IDs
-            try:
-                with h5py.File(str(emb_path), "r") as hf:
-                    processed_ids = set(hf.keys())
-            except OSError:
-                # File doesn't exist yet, so no IDs have been processed
-                processed_ids = set()
-
             # Unpack the current batch
             pdb_ids, seqs, seq_lens = zip(*batch)
             batch = list()
