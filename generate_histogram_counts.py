@@ -71,7 +71,7 @@ def generate_histogram_table(input_fasta, bin_size, threshold = 4000, save_table
 if __name__ == "__main__":
     # Set up argument parsing
     parser = argparse.ArgumentParser(description='Generate a histogram table from a protein length distribution file.')
-    parser.add_argument('input_file', type=str, help='Path to the input text file (e.g. human_length_dist.txt)')
+    parser.add_argument('input_file', type=str, help='Path to the input FASTA file (e.g. human.fasta)')
     parser.add_argument('bin_size', type=int, help='Bin size for the histogram (e.g., 2000)')
     parser.add_argument('--threshold', type=int, default=4000, help='Threshold for counting proteins above a certain length (default: 4000)')
     parser.add_argument('--save_table', action="store_true", help='Save the table as a CSV file? Include this flag for yes, leave off for no')
