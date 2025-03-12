@@ -14,7 +14,7 @@ CHECKPOINT_DIR="/lisc/scratch/dome/pullen/GlobDB"
 MASTER_FILE="${CHECKPOINT_DIR}/all_embeddings.h5"
 
 # ***********************
-CHUNK="0_99" # change here
+CHUNK="200_299" # change here
 # ***********************
 # CHUNK="100_199" # change here
 
@@ -53,7 +53,8 @@ try:
                     with h5py.File(temp_file, "r") as temp_hf:
                         for key in temp_hf.keys():
                             if key not in master_hf:
-                                master_hf.create_dataset(key, data=temp_hf[key][()])
+                                # Use h5py.h5o.copy to copy the dataset directly without loading into memory.
+                                h5py.h5o.copy(temp_hf.id, key.encode("utf-8"), master_hf.id, key.encode("utf-8"))
                                 total_added += 1
                             else:
                                 print(f"Protein {key} already exists in master; skipping.")
