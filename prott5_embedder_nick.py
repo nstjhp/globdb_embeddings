@@ -14,6 +14,7 @@ import os
 import logging
 from pathlib import Path
 import sys
+import fcntl
 
 import torch
 import h5py
@@ -62,10 +63,34 @@ def read_fasta( fasta_path ):
                 
     return sequences
 
+def read_processed_ids(master_emb_path):
+    try:
+        if master_emb_path is None:
+            print("No prior embeddings file provided.")
+            return set()
+        # Should be a Path object
+        master_emb_path = Path(master_emb_path)
+
+        with open(master_emb_path, 'rb') as f:
+            print("Acquiring shared lock...")
+            fcntl.flock(f, fcntl.LOCK_SH)
+            try:
+                with h5py.File(f, 'r') as hf:
+                    processed_ids = set(hf.keys())
+                    print(f"Found {len(processed_ids)} previously processed proteins.")
+                    return processed_ids
+            finally:
+                print("Releasing shared lock...")
+                fcntl.flock(f, fcntl.LOCK_UN)
+    except (OSError, TypeError) as e:
+        # File doesn't exist yet, so no IDs have been processed
+        print(f"Prior embeddings problem - {e}. No prior proteins checked for this run.")
+        return set()
 
 def get_embeddings(seq_path, 
                    emb_path, 
-                   model_dir, 
+                   model_dir,
+                   master_emb_path,
                    per_protein, # whether to derive per-protein (mean-pooled) embeddings
                    max_residues=4000, # number of cumulative residues per batch
                    max_seq_len=1000, # max length after which we switch to single-sequence processing to avoid OOM
@@ -99,13 +124,8 @@ def get_embeddings(seq_path,
     batch_count = 0 # Batches for logging
     new_embeddings_count = 0  # How many new embeddings were processed
 
-    # Checkpointing - Open the H5 file to get the already processed IDs
-    try:
-        with h5py.File(str(emb_path), "r") as hf:
-            processed_ids = set(hf.keys())
-    except OSError:
-        # File doesn't exist yet, so no IDs have been processed
-        processed_ids = set()
+    # Checkpointing - Open the 'master' H5 file to get the already processed IDs
+    processed_ids = read_processed_ids(master_emb_path)
 
     start = time.time()
     batch = list()
@@ -225,6 +245,10 @@ def create_arg_parser():
                     default=None,
                     help='A path to a directory holding the checkpoint for a pre-trained model' )
 
+    # Optional positional argument
+    parser.add_argument( '--master_embedding_file', required=False, type=str, 
+                    help='A path for all the current embeddings which will be checked to avoid duplicate work')
+
     # Optional argument
     parser.add_argument('--per_protein', type=int, 
                     default=1,
@@ -249,6 +273,7 @@ def main():
     
     seq_path   = Path( args.input )
     emb_path   = Path( args.output)
+    master_emb_path = Path( args.master_embedding_file) if args.master_embedding_file is not None else None
     model_dir  = Path( args.model ) if args.model is not None else None
 
     per_protein = False if int(args.per_protein)==0 else True
@@ -264,7 +289,7 @@ def main():
             f.write("****************************************************************************************************************************\n\n")
     logging.basicConfig(filename=log_path, level=logging.INFO, format='%(asctime)s - %(levelname)s - Process: %(process)d - %(message)s')
     
-    get_embeddings( seq_path, emb_path, model_dir, per_protein=per_protein, 
+    get_embeddings( seq_path, emb_path, model_dir, master_emb_path=master_emb_path, per_protein=per_protein, 
                     max_residues=max_residues, max_seq_len=max_seq_len, max_batch=max_batch)
 
 if __name__ == '__main__':
