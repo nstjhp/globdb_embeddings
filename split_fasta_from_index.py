@@ -25,6 +25,10 @@ def split_fasta(fasta_file: str, fai_file: str, part_size: int, output_string: s
     We can exploit the knowledge of which sequence starts at which byte (column 3) and the standardised
     format of the fasta to calculate the byte at which the ID of the sequence starts too. This makes
     splitting the file into parts much more efficient than reading the whole fasta into memory.
+    A useful command to help is `od -A d -t c -w16 file.fasta` to see the byte positions and characters.
+    In the example above we have ID strings of 15 bytes, plus a `>` and a newline. So from the byte 
+    offset we subtract 15+2 to get the start of the sequence ID (which should = the previous sequence's
+    offset plus linewidth, as we have the sequence on 1 line).
 
     Key Steps:
     0. Make the .fai file e.g. `seqkit faidx file.fasta`.
