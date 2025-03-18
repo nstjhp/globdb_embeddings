@@ -76,7 +76,11 @@ def read_processed_ids(master_emb_path):
             fcntl.flock(f, fcntl.LOCK_SH)
             try:
                 with h5py.File(f, 'r') as hf:
-                    processed_ids = set(hf.keys())
+                    keys_ds = hf['keys'][:]
+                    processed_ids = set(
+                        key.decode('utf-8') if isinstance(key, bytes) else key
+                        for key in keys_ds.tolist()
+                    )
                     print(f"Found {len(processed_ids)} previously processed proteins.")
                     return processed_ids
             finally:
