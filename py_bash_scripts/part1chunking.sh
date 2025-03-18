@@ -74,12 +74,6 @@ seqkit seq -m 1001 "$INPUT_FASTA" > "$OUT_MIN"
 MAIN_STATS="${STATS_DIR}/${PREFIX}_stats.txt"
 #echo "# Main seqkit stats for $PREFIX" > "$MAIN_STATS"
 
-# Run seqkit stats on _filtered1000AAmax.fasta and append to main stats file
-seqkit stats "$OUT_MAX" >> "$MAIN_STATS"
-
-# Run seqkit stats on _filtered1001AAmin.fasta and append to main stats file
-seqkit stats "$OUT_MIN" >> "$MAIN_STATS"
-
 # Step 2: Create a tab-delimited table (ID and length) for proteins <= 1000 AAs
 LENGTHS_FILE="${LENGTHS_DIR}/${PREFIX}_lengths.tsv"
 echo "Generating lengths table: $LENGTHS_FILE..."
@@ -102,10 +96,8 @@ for bin in {0..9}; do
     seqkit grep -f "$BIN_IDS" "$OUT_MAX" > "$BIN_FASTA"
 done
 
-# Step 4: Run seqkit stats on each binned FASTA file and append to the main stats file
-for fasta in "${BINS_DIR}/${PREFIX}_filtered1000AAmax_sorted_"*.fasta; do
-    seqkit stats "$fasta" >> "$MAIN_STATS"
-done
+# Step 4: Run seqkit stats on each binned FASTA file and the 1001AAmin fasta
+seqkit stats -b "$OUT_MAX" "${BINS_DIR}/${PREFIX}_filtered1000AAmax_sorted_"*.fasta "$OUT_MIN" >> "$MAIN_STATS" 
 
 # Clean up the large intermediate file (filtered1000AAmax) as its data is now in the bins
 rm -f "$OUT_MAX"

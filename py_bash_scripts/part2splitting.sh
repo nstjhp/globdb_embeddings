@@ -2,6 +2,7 @@
 # Usage: ./part2splitting.sh <fasta_file> <number_of_parts>
 # Run from the base dir i.e. above bins/ from part1chunking.sh
 # for fasta in bins/head500.part_00*_0_99.fasta; do time /lisc/project/dome/protein_embeddings/py_bash_scripts/part2splitting.sh "$fasta" 2 ; done
+set -euo pipefail
 
 # Check that exactly two arguments are provided.
 if [ "$#" -ne 2 ]; then
