@@ -63,6 +63,25 @@ def read_fasta( fasta_path ):
                 
     return sequences
 
+def setup_logging(log_path, env_var_name='MY_SLURM_PROCESS_ID'):
+    """Modify the global logging config"""
+    # Get an env variable from SLURM
+    my_variable = os.getenv(env_var_name, str(os.getpid()))
+
+    # Custom formatter as basicConfig doesn't allow own variables in the logging message
+    class CustomFormatter(logging.Formatter):
+        def format(self, record):
+            record.my_variable = my_variable
+            return super().format(record)
+
+    formatter = CustomFormatter('%(asctime)s - %(levelname)s - Process: %(my_variable)s - %(message)s')
+    handler = logging.FileHandler(log_path)
+    handler.setFormatter(formatter)
+
+    logger = logging.getLogger()
+    logger.setLevel(logging.INFO)
+    logger.addHandler(handler)
+
 def read_processed_ids(master_emb_path):
     try:
         if master_emb_path is None:
@@ -292,7 +311,9 @@ def main():
     if log_path is not None and os.path.exists(log_path):
         with open(log_path, "a") as f:
             f.write("****************************************************************************************************************************\n\n")
-    logging.basicConfig(filename=log_path, level=logging.INFO, format='%(asctime)s - %(levelname)s - Process: %(process)d - %(message)s')
+
+    setup_logging(log_path)
+#    logging.basicConfig(filename=log_path, level=logging.INFO, format='%(asctime)s - %(levelname)s - Process: %(process)d - %(message)s')
     
     get_embeddings( seq_path, emb_path, model_dir, master_emb_path=master_emb_path, per_protein=per_protein, 
                     max_residues=max_residues, max_seq_len=max_seq_len, max_batch=max_batch)
