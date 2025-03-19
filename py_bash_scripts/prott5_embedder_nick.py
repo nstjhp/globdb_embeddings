@@ -120,10 +120,6 @@ def get_embeddings(seq_path,
     print("Average sequence length: {}".format(avg_length))
     print("Number of sequences >{}: {}".format(max_seq_len, n_long))
 
-    # Here we flush all the prior print statements to stdout so we can check that sth is happening
-    # Otherwise this gets held in a buffer until job completion which is not very helpful
-    sys.stdout.flush()
-
     # Initialize counters
     batch_count = 0 # Batches for logging
     new_embeddings_count = 0  # How many new embeddings were processed
@@ -131,6 +127,11 @@ def get_embeddings(seq_path,
     # Checkpointing - Open the 'master' H5 file to get the already processed IDs
     processed_ids = read_processed_ids(master_emb_path)
 
+    # Here we flush all the prior print statements to stdout so we can check that sth is happening
+    # Otherwise this gets held in a buffer until job completion which is not very helpful
+    sys.stdout.flush()
+
+    logging.info("=========FOR LOOP STARTING============")
     start = time.time()
     batch = list()
     for seq_idx, (pdb_id, seq) in enumerate(seq_dict,1):
@@ -194,7 +195,7 @@ def get_embeddings(seq_path,
                 )
                 # Save FAILs to log as well so that all proteins will have either NEW, EXISTING or FAIL in the log file
                 logging.info(log_message)
-                # This will go to the .out file and should indicate the exact protein that failed in the batch
+                # This will go to the .out file and should indicate the last protein in the batch that failed 
                 print("Batch {} with total batch length {} RuntimeError during embedding for {} (Length={} AAs). Try lowering batch size. ".format(batch_count, total_batch_length, proc_ids[-1], proc_seq_lens[-1]) +
                       "If single sequence processing does not work, you need more vRAM to process your protein.")
                 sys.stdout.flush()
