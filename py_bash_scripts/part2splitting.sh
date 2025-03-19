@@ -1,6 +1,12 @@
 #!/bin/bash
 # Usage: ./part2splitting.sh <fasta_file> <number_of_parts>
 # Run from the base dir i.e. above bins/ from part1chunking.sh
+# File read in below was calculated from y = 4.4562e-07x² + 7.0125e-04x + 1.3098e-03 
+# where x is avg length of seq per chunk (+2 in case of 0_99 as curve overestimates speed here)
+# while IFS=, read -r file num_splits; do
+#    time /lisc/project/dome/protein_embeddings/py_bash_scripts/part2splitting.sh "bins/$file" "$num_splits"
+# done < stats/files_by_how_many_to_split.csv
+# Old way below that doesn't account for variation in #of seqs per chunk
 # for fasta in bins/head500.part_00*_0_99.fasta; do time /lisc/project/dome/protein_embeddings/py_bash_scripts/part2splitting.sh "$fasta" 2 ; done
 set -euo pipefail
 
