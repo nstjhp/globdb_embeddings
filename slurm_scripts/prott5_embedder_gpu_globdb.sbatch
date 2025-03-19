@@ -2,21 +2,24 @@
 #SBATCH --job-name=prott5_embed_array
 # #SBATCH --output=job%A_%a_GPU.out
 # #SBATCH --error=job%A_%a_GPU.err
-#SBATCH --mail-type=ARRAY_TASKS,END,TIME_LIMIT
+#SBATCH --mail-type=ARRAY_TASKS,END
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=1 # for GPU usage, only need 1 CPU and more shards
-#SBATCH --mem=16000M
+#SBATCH --mem=8000M
 #SBATCH --time=0-01:00:00
 #SBATCH --partition=basic#,gpu 
 # #SBATCH --gres=shard:1 # If you don't know the optimal CPU/GPU ratio of your job, we recommend to request as many shard resources as CPU cores.
 #SBATCH --gres=gpu:t4:1
-#SBATCH --array=1-14
+#SBATCH --exclude=node-c[01-02] # trick to exclude c nodes that for unknown reasons use 2 threads
+# #SBATCH --threads-per-core=1 # docs not clear if this is min 1, or max 1, but test shows it does not force 1 so a bit pointless
+#SBATCH --array=1-7
 
 # Exit the slurm script if a command fails
 set -e
 
 # ***********************
-CHUNK="100_199" # change here and --array above
+CHUNK="900_1000" # change here and --array above
+# CHUNK="800_899" # change here and --array above
 # ***********************
 
 # Construct filenames dynamically
@@ -44,6 +47,7 @@ MAX_BATCH=200
 
 echo "Job ID: ${SLURM_JOB_ID}"
 echo "Job Array ID: ${SLURM_ARRAY_JOB_ID}"
+echo "TMPDIR: ${TMPDIR}"
 echo "Node: ${SLURMD_NODENAME}"
 echo "Array index: ${SLURM_ARRAY_TASK_ID}"
 echo "Running task $IDX with parameters:"
@@ -51,13 +55,36 @@ echo "  MAX_RESIDUES: $MAX_RESIDUES"
 echo "  MAX_SEQ_LEN:  $MAX_SEQ_LEN"
 echo "  MAX_BATCH:    $MAX_BATCH"
 
+# For use in the Python logging, here we set MY_SLURM_PROCESS_ID 
+# and base it on whether this is an array job (-n checks if a string is non-empty)
+if [[ -n "${SLURM_ARRAY_JOB_ID}" && -n "${SLURM_ARRAY_TASK_ID}" ]]; then
+    # This is an array job
+    export MY_SLURM_PROCESS_ID="${SLURM_ARRAY_JOB_ID}_${SLURM_ARRAY_TASK_ID}"
+else
+    # This is not an array job; use SLURM_JOB_ID instead
+    export MY_SLURM_PROCESS_ID="${SLURM_JOB_ID}"
+fi
+echo "MY_SLURM_PROCESS_ID: ${MY_SLURM_PROCESS_ID}"
+
 # Run the Python script
-python /lisc/project/dome/protein_embeddings/prott5_embedder_nick.py \
+python /lisc/project/dome/protein_embeddings/py_bash_scripts/prott5_embedder_nick.py \
   --input ${FASTA_INPUT_FILE} \
-  --output /lisc/scratch/dome/pullen/GlobDB/embeddings_${CHUNK}_${SPLIT_ID}.h5 \
-  --log /lisc/scratch/dome/pullen/GlobDB/${SLURM_ARRAY_JOB_ID}_chloroflexi_test1000_gpu_splits_${CHUNK}.log \
+  --output $TMPDIR/embeddings_${CHUNK}_${SPLIT_ID}.h5 \
+  --log $TMPDIR/${SLURM_ARRAY_JOB_ID}_chloroflexi_test1000_gpu_splits_${CHUNK}_${SPLIT_ID}.log \
   --max_residues ${MAX_RESIDUES} --max_seq_len ${MAX_SEQ_LEN} --max_batch ${MAX_BATCH} \
-  --master_embedding_file /lisc/scratch/dome/pullen/GlobDB/all_embeddings.h5
+  --master_embedding_file /lisc/project/dome/protein_embeddings/GlobDB/chloroflexi_test1000/embeddings/chloroflexi_test100_embeddings.h5
+
+if [ -f "$TMPDIR/embeddings_${CHUNK}_${SPLIT_ID}.h5" ]; then
+    cp "$TMPDIR/embeddings_${CHUNK}_${SPLIT_ID}.h5" /lisc/scratch/dome/pullen/GlobDB/
+else
+    echo "File $TMPDIR/embeddings_${CHUNK}_${SPLIT_ID}.h5 not found; skipping copy."
+fi
+
+if [ -f "$TMPDIR/${SLURM_ARRAY_JOB_ID}_chloroflexi_test1000_gpu_splits_${CHUNK}_${SPLIT_ID}.log" ]; then
+    cp "$TMPDIR/${SLURM_ARRAY_JOB_ID}_chloroflexi_test1000_gpu_splits_${CHUNK}_${SPLIT_ID}.log" /lisc/scratch/dome/pullen/GlobDB/
+else
+    echo "File $TMPDIR/${SLURM_ARRAY_JOB_ID}_chloroflexi_test1000_gpu_splits_${CHUNK}_${SPLIT_ID}.log not found; skipping copy."
+fi
 
 # Append the contents of this script to the output file
 echo "=== Job Script Contents ==="
@@ -66,4 +93,3 @@ echo "==========================="
 
 # If we reached this point, we succeeded. We clean up resources.
 rm -rf $TMPDIR
-

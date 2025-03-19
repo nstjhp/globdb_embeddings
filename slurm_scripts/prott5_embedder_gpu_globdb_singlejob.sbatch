@@ -40,8 +40,19 @@ MAX_SEQ_LEN=2000
 MAX_BATCH=200
 JOB_PARAM_STRING="${MAX_RESIDUES}_${MAX_SEQ_LEN}_${MAX_BATCH}_${CHUNK}_${SPLIT_ID}"
 
+# For use in the Python logging, here we set MY_SLURM_PROCESS_ID
+# and base it on whether this is an array job (-n checks if a string is non-empty)
+if [[ -n "${SLURM_ARRAY_JOB_ID}" && -n "${SLURM_ARRAY_TASK_ID}" ]]; then
+    # This is an array job
+    export MY_SLURM_PROCESS_ID="${SLURM_ARRAY_JOB_ID}_${SLURM_ARRAY_TASK_ID}"
+else
+    # This is not an array job; use SLURM_JOB_ID instead
+    export MY_SLURM_PROCESS_ID="${SLURM_JOB_ID}"
+fi
+echo "MY_SLURM_PROCESS_ID: ${MY_SLURM_PROCESS_ID}"
+
 # Run the Python script
-python /lisc/project/dome/protein_embeddings/prott5_embedder_nick.py \
+python /lisc/project/dome/protein_embeddings/py_bash_scripts/prott5_embedder_nick.py \
   --input ${FASTA_INPUT_FILE} \
   --output /lisc/scratch/dome/pullen/GlobDB/embeddings_${JOB_PARAM_STRING}.h5 \
   --log /lisc/scratch/dome/pullen/GlobDB/${JOB_PARAM_STRING}_chloroflexi_test1000_gpu_splits.log \
