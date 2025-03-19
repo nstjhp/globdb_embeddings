@@ -98,7 +98,7 @@ def read_processed_ids(master_emb_path):
                     keys_ds = hf['keys'][:]
                     processed_ids = set(
                         key.decode('utf-8') if isinstance(key, bytes) else key
-                        for key in keys_ds.tolist()
+                        for key in keys_ds.tolist() if key not in (b'', '')
                     )
                     print(f"Found {len(processed_ids)} previously processed proteins.")
                     return processed_ids
