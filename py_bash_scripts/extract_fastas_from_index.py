@@ -3,7 +3,7 @@ import sys
 from typing import List, Set, Tuple
 import os
 
-def extract_seqs(fasta_file: str, fai_file: str, IDs_to_extract: str, output_string: str) -> None:
+def extract_seqs(fasta_file: str, fai_file: str, IDs_to_extract: str, output_file: str) -> None:
     """
     Extract desired sequences from a large FASTA file using its .fai index file.
 
@@ -46,7 +46,7 @@ def extract_seqs(fasta_file: str, fai_file: str, IDs_to_extract: str, output_str
         fasta_file (str): Path to the input FASTA file.
         fai_file (str): Path to the corresponding .fai index file.
         IDs_to_extract (str): Path to a text file containing sequence IDs to extract (one per line).
-        output_string (str): Output filename
+        output_file (str): Output filename
 
     Output:
         Generates one FASTA file containing only our desired sequences.
@@ -61,7 +61,7 @@ def extract_seqs(fasta_file: str, fai_file: str, IDs_to_extract: str, output_str
     assert isinstance(fasta_file, str) and fasta_file.endswith(('.fasta', '.faa')), "fasta_file must be a valid .fasta or .faa file path."
     assert isinstance(fai_file, str) and fai_file.endswith('.fai'), "fai_file must be a valid .fai file path."
     assert isinstance(IDs_to_extract, str), "IDs_to_extract must be a valid file path as a string."
-    assert isinstance(output_string, str) and output_string.endswith(('.fasta', '.faa')), "output_string must be a valid .fasta or .faa file path."
+    assert isinstance(output_file, str) and output_file.endswith(('.fasta', '.faa')), "output_file must be a valid .fasta or .faa file path."
     if not os.path.exists(IDs_to_extract):
         raise FileNotFoundError(f"IDs_to_extract file '{IDs_to_extract}' not found.")
 
@@ -157,11 +157,11 @@ def main():
     # Parameters
     fasta_file = "/lisc/scratch/dome/pullen/GlobDB/linclust/slurm-4625318/globdb_clusters_rep.fasta"
     fai_file = "/lisc/scratch/dome/pullen/GlobDB/linclust/slurm-4625318/globdb_clusters_rep.fasta.fai"
-    output_string = "/lisc/scratch/dome/pullen/GlobDB/linclust/slurm-4625318/clusters_more_than1.fasta"
+    output_file = "/lisc/scratch/dome/pullen/GlobDB/linclust/slurm-4625318/clusters_more_than1.fasta"
     IDs_to_extract = "/lisc/scratch/dome/pullen/GlobDB/linclust/slurm-4625318/cluster_more_than1_IDs.txt"
     
     # Run the splitting
-    extract_seqs(fasta_file, fai_file, IDs_to_extract, output_string)
+    extract_seqs(fasta_file, fai_file, IDs_to_extract, output_file)
 
 if __name__ == '__main__':
     main()
