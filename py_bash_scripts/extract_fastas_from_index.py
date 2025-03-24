@@ -46,7 +46,7 @@ def extract_seqs(fasta_file: str, fai_file: str, IDs_to_extract: str, output_fil
         fasta_file (str): Path to the input FASTA file.
         fai_file (str): Path to the corresponding .fai index file.
         IDs_to_extract (str): Path to a text file containing sequence IDs to extract (one per line).
-        output_file (str): Output filename
+        output_file (str): Path to output FASTA filename (must be .fasta or .faa)
 
     Output:
         Generates one FASTA file containing only our desired sequences.
