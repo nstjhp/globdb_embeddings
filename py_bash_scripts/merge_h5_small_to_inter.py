@@ -48,24 +48,32 @@ def process_group(args):
         keys_array = np.array(keys, dtype=object)
         f_out.create_dataset('keys', data=keys_array, dtype=dt)
 
-    print(f"Finished writing {output_filename}")
+    print(f"Finished writing {output_filename} with {idx} embeddings")
     sys.stdout.flush()
     return output_filename
 
 def main():
     parser = argparse.ArgumentParser(description="Process and aggregate HDF5 files into intermediate master files.")
-    parser.add_argument('--input-pattern', type=str, required=True,
-                        help="Glob pattern for source HDF5 files (e.g., 'data/*.h5')")
+    parser.add_argument('--input-patterns', type=str, required=True,
+                        help="Comma-separated glob patterns for source HDF5 files (e.g., 'embed_462*,embed_46330*')")
     parser.add_argument('--output-dir', type=str, required=True,
                         help="Directory where intermediate master files will be stored")
     parser.add_argument('--num-groups', type=int, default=16,
                         help="Number of groups/intermediate files to create (default: 16)")
     args = parser.parse_args()
 
-    source_files = glob.glob(args.input_pattern)
+    # Split the comma-separated patterns and combine the results.
+    patterns = [p.strip() for p in args.input_patterns.split(',')]
+    source_files = []
+    for pattern in patterns:
+        source_files.extend(glob.glob(pattern))
+
     if not source_files:
         print("No source files found. Exiting.")
         return
+    else:
+        print(f"Found {len(source_files)} files")
+        print("Files:", source_files)
 
     # Divide the list of files into groups.
     groups = [source_files[i::args.num_groups] for i in range(args.num_groups)]
@@ -89,4 +97,4 @@ if __name__ == '__main__':
 
 # input_pattern = '/lisc/project/dome/protein_embeddings/GlobDB/chloroflexi_test1000/embeddings/*.h5'
 
-# python /lisc/project/dome/protein_embeddings/py_bash_scripts/merge_h5_small_to_inter.py --input-pattern "/lisc/project/dome/protein_embeddings/GlobDB/chloroflexi_test1000/embeddings/*.h5" --output-dir $TMPDIR --num-groups 16
+# python /lisc/project/dome/protein_embeddings/py_bash_scripts/merge_h5_small_to_inter.py --input-patterns "/lisc/scratch/dome/pullen/GlobDB/embeddings/embed_462*,/lisc/scratch/dome/pullen/GlobDB/embeddings/embed_46330*" --output-dir $TMPDIR --num-groups 16
