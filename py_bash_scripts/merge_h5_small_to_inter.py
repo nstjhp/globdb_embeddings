@@ -89,3 +89,4 @@ if __name__ == '__main__':
 
 # input_pattern = '/lisc/project/dome/protein_embeddings/GlobDB/chloroflexi_test1000/embeddings/*.h5'
 
+# python /lisc/project/dome/protein_embeddings/py_bash_scripts/merge_h5_small_to_inter.py --input-pattern "/lisc/project/dome/protein_embeddings/GlobDB/chloroflexi_test1000/embeddings/*.h5" --output-dir $TMPDIR --num-groups 16
