@@ -53,3 +53,12 @@ df.loc[df["chunk"] == "0_99", "num_splits"] += 2
 # print(df)
 
 df[["file", "num_splits"]].to_csv("files_by_how_many_to_split.csv")
+
+# with this file it's useful to:
+# cp files_by_how_many_to_split.csv files_by_how_many_to_split_excluding_1001AAmin.csv
+# vi files_by_how_many_to_split_excluding_1001AAmin.csv
+# :g/min/d to remove the lines with the 1001 min as we don't split them - they will go
+# directly to the L40s which has the RAM to deal with big proteins
+# :%s/\.0$// to remove the decimal part which won't work with seqkit split
+# e.g. invalid argument "82.0" for "-p, --by-part" flag: strconv.ParseInt: parsing "82.0": invalid syntax
+# Our file without the 1001 min will now go to part2splitting.sh
