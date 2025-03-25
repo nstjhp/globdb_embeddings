@@ -7,7 +7,7 @@ import sys
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Merge intermediate HDF5 files into one master file."
+        description="Merge intermediate HDF5 files into one master file with unlimited rows."
     )
     parser.add_argument(
         '--input-dir', type=str, required=True,
@@ -16,10 +16,6 @@ def main():
     parser.add_argument(
         '--output-file', type=str, required=True,
         help="Path for the output master HDF5 file (e.g., 'master.h5')"
-    )
-    parser.add_argument(
-        '--total-embeddings', type=int, default=3052886,
-        help="Total number of embeddings to expect (default: 3052886)"
     )
     args = parser.parse_args()
 
@@ -33,20 +29,20 @@ def main():
     with h5py.File(intermediate_files[0], 'r') as f:
         emb_shape = f['embeddings'].shape  # e.g., (n, 1024)
     n_cols = emb_shape[1]
-    total_embeddings = args.total_embeddings
 
     print(f"Merging {len(intermediate_files)} files into {args.output_file}")
-    print(f"Preallocating a dataset of shape ({total_embeddings}, {n_cols})")
+    print(f"Creating master dataset with unlimited rows and {n_cols} columns")
 
-    # Create the master file and preallocate datasets.
+    # Create the master file and initialize datasets with 0 rows, but with an unlimited maxshape.
     with h5py.File(args.output_file, 'w') as master:
         master_emb = master.create_dataset(
-            'embeddings', shape=(total_embeddings, n_cols), dtype='float32'
+            'embeddings', shape=(0, n_cols), maxshape=(None, n_cols),
+            dtype='float32', chunks=(10000, n_cols)# chunks are memory storage size
         )
         # Create dataset for keys using a variable-length UTF-8 string dtype.
         dt = h5py.string_dtype(encoding='utf-8')
         master_keys = master.create_dataset(
-            'keys', shape=(total_embeddings,), dtype=dt
+            'keys', shape=(0,), maxshape=(None,), dtype=dt, chunks=(1_000_000,)
         )
 
         current_index = 0
@@ -56,21 +52,21 @@ def main():
                 keys_block = f['keys'][:]
                 n_block = emb_block.shape[0]
 
-                if current_index + n_block > total_embeddings:
-                    raise ValueError(
-                        f"Block from {file} exceeds allocated size: current index {current_index} + block size {n_block} > {total_embeddings}"
-                    )
+                # Extend the master datasets to accommodate the new block.
+                new_total = current_index + n_block
+                master_emb.resize((new_total, n_cols))
+                master_keys.resize((new_total,))
+                
+                master_emb[current_index:new_total, :] = emb_block
+                master_keys[current_index:new_total] = keys_block
+                current_index = new_total
 
-                master_emb[current_index:current_index + n_block, :] = emb_block
-                master_keys[current_index:current_index + n_block] = keys_block
-                current_index += n_block
                 print(f"Copied {n_block} embeddings from {file}")
                 sys.stdout.flush()
 
         print(f"Finished merging. Total embeddings copied: {current_index}")
-        if current_index != total_embeddings:
-            print(f"Warning: Total embeddings copied ({current_index}) does not match expected ({total_embeddings}).")
 
 if __name__ == '__main__':
     main()
 
+# python /lisc/project/dome/protein_embeddings/py_bash_scripts/merge_h5_inter_to_big.py --input-dir $TMPDIR --output-file $TMPDIR/master_embeddings.h5
