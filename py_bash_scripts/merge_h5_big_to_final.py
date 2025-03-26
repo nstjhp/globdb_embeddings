@@ -9,22 +9,26 @@ def main():
     parser = argparse.ArgumentParser(
         description="Merge large HDF5 files into one master file."
     )
-    parser.add_argument('--input-dir', type=str, required=True,
-                        help="Directory containing the big HDF5 files to merge.")
-    parser.add_argument('--pattern', type=str, default="*.h5",
-                        help="Glob pattern for HDF5 files in the input directory (default: *.h5)")
+    parser.add_argument('--input-files', type=str, required=True,
+                        help="Comma-separated glob patterns for source HDF5 files (e.g., 'embed_462*,embed_46330*')")
     parser.add_argument('--output-file', type=str, required=True,
                         help="Path to the final output master HDF5 file.")
     parser.add_argument('--block-size', type=int, default=100000,
                         help="Number of rows to process per block (default: 100000).")
     args = parser.parse_args()
 
-    # Get list of input files based on the given directory and pattern.
-    input_pattern = os.path.join(args.input_dir, args.pattern)
-    input_files = sorted(glob.glob(input_pattern))
+    # Split the comma-separated patterns and combine the results.
+    patterns = [p.strip() for p in args.input_files.split(',')]
+    input_files = []
+    for pattern in patterns:
+        input_files.extend(glob.glob(pattern))
+
     if not input_files:
-        print("No input files found matching", input_pattern)
+        print("No input files found. Exiting.")
         return
+    else:
+        print(f"Found {len(input_files)} files")
+        print("Files:", input_files)
 
     # Open one input file to determine the embedding width (assumed same for all)
     with h5py.File(input_files[0], 'r') as f:
@@ -93,4 +97,4 @@ def main():
 if __name__ == '__main__':
     main()
 
-# /usr/bin/time python merge_h5_big_to_final.py --input-dir /lisc/project/dome/protein_embeddings/GlobDB/embeddings/ --pattern "[mp]*.h5" --output-file /lisc/project/dome/protein_embeddings/GlobDB/embeddings/chlor_plus_part001_100k.h5 --block-size 100000
+# /usr/bin/time python merge_h5_big_to_final.py --input-files "/lisc/project/dome/protein_embeddings/GlobDB/embeddings/chlor_plus_part001.h5,/lisc/project/dome/protein_embeddings/GlobDB/embeddings/part002_embeddings.h5" --output-file /lisc/project/dome/protein_embeddings/GlobDB/embeddings/chlor_plus_part001and002.h5
