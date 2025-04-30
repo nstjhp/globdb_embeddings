@@ -39,6 +39,9 @@ def process_group(args):
                 embeddings[idx] = data
                 keys.append(key)
                 idx += 1
+                if idx % 1_000_000 == 0:
+                    print(f"Processed {idx} embeddings so far. Currently in file {fname}")
+                    sys.stdout.flush()
 
     # Write the aggregated data to an intermediate file.
     with h5py.File(output_filename, 'w') as f_out:
@@ -53,7 +56,8 @@ def process_group(args):
     return output_filename
 
 def main():
-    parser = argparse.ArgumentParser(description="Process and aggregate HDF5 files into intermediate master files.")
+    parser = argparse.ArgumentParser(description="Process and aggregate HDF5 files into intermediate master files.",
+                                     allow_abbrev=False) # otherwise I might accidentally do sth bad, see https://docs.python.org/3/library/argparse.html#argument-abbreviations-prefix-matching
     parser.add_argument('--input-patterns', type=str, required=True,
                         help="Comma-separated glob patterns for source HDF5 files (e.g., 'embed_462*,embed_46330*')")
     parser.add_argument('--output-dir', type=str, required=True,
