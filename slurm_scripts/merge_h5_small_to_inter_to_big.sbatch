@@ -1,23 +1,21 @@
 #!/bin/bash
-#SBATCH --job-name=merge_h5_part001
+#SBATCH --job-name=merge_h5_1001AAmin
 #SBATCH --output=job%A_%x_%N.out
 #SBATCH --error=job%A_%x_%N.err
 #SBATCH --mail-type=END,FAIL
 #SBATCH --ntasks=1
-#SBATCH --cpus-per-task=16
-#SBATCH --mem=16000M
-#SBATCH --time=00:30:00
-#SBATCH --partition=basic,short
+#SBATCH --cpus-per-task=5
+#SBATCH --mem=18000M
+#SBATCH --time=1:00:00
 
 # Exit the slurm script if a command fails
 set -e
 
-ID="part001"
-INPUT_FILES="/lisc/scratch/dome/pullen/GlobDB/embeddings/embed_462*,/lisc/scratch/dome/pullen/GlobDB/embeddings/embed_46330*"
-OUTPUT_FILE="${ID}_embeddings.h5"
+INPUT_FILES="/lisc/scratch/dome/pullen/GlobDB/embeddings/embed_4899843*,/lisc/scratch/dome/pullen/GlobDB/embeddings/embed_4912031*"
+OUTPUT_FILE="globdb_linclust_embeddings_1001AAmin.h5"
 
 # Small to inter
-/usr/bin/time python /lisc/project/dome/protein_embeddings/py_bash_scripts/merge_h5_small_to_inter.py --input-pattern "${INPUT_FILES}" --output-dir $TMPDIR --num-groups 16
+/usr/bin/time python /lisc/project/dome/protein_embeddings/py_bash_scripts/merge_h5_small_to_inter.py --input-patterns "${INPUT_FILES}" --output-dir $TMPDIR --num-groups 5
 
 echo "Small to intermediates DONE"
 
