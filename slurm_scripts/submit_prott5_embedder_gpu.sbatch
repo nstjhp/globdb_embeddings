@@ -34,7 +34,7 @@ FASTA_INPUT_FILE="/lisc/project/cube/protein_embeddings/Ecoli/4998lines.fasta"
 # FASTA_INPUT_FILE="/lisc/project/cube/protein_embeddings/GlobDB/chloroflexi_test100.faa"
 
 # Run the Python script
-python  -m cProfile -s cumulative /lisc/project/cube/protein_embeddings/prott5_embedder_nick.py \
+python  -m cProfile -s cumulative /lisc/project/cube/protein_embeddings/prott5_embedder_globdb.py \
   --input ${FASTA_INPUT_FILE} \
   --output /lisc/scratch/cube/pullen/Ecoli/embeddings_confirmAllOK.h5 \
   --log /lisc/scratch/cube/pullen/testing_ecoli_gpu.log

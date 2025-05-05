@@ -66,7 +66,7 @@ fi
 echo "MY_SLURM_PROCESS_ID: ${MY_SLURM_PROCESS_ID}"
 
 # Run the Python script
-python /lisc/project/dome/protein_embeddings/py_bash_scripts/prott5_embedder_nick.py \
+python /lisc/project/dome/protein_embeddings/py_bash_scripts/prott5_embedder_globdb.py \
   --input ${FASTA_INPUT_FILE} \
   --output $TMPDIR/embed_${JOB_PARAM_STRING}.h5 \
   --log $TMPDIR/${JOB_PARAM_STRING}.log \

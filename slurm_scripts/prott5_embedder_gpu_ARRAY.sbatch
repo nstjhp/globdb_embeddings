@@ -49,7 +49,7 @@ echo "  MAX_SEQ_LEN:  $MAX_SEQ_LEN"
 echo "  MAX_BATCH:    $MAX_BATCH"
 
 # Run the Python script
-python /lisc/project/dome/protein_embeddings/prott5_embedder_nick.py \
+python /lisc/project/dome/protein_embeddings/prott5_embedder_globdb.py \
   --input ${FASTA_INPUT_FILE} \
   --output /lisc/scratch/dome/pullen/Human/embeddings_GPU_${JOB_PARAM_STRING}.h5 \
   --log /lisc/scratch/dome/pullen/Human/human_gpu_splits_${JOB_PARAM_STRING}.log \

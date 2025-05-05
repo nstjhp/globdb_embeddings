@@ -325,4 +325,4 @@ if __name__ == '__main__':
     main()
     logging.info("=========DONE============")
 # Example to run:
-# python prott5_embedder_nick.py --input Ecoli/494lines.fasta --output Ecoli/protein_embeddings.h5 --log /lisc/scratch/cube/pullen/testing.log --max_residues 16000 --max_seq_len 8000 --max_batch 100
+# python prott5_embedder_globdb.py --input Ecoli/494lines.fasta --output Ecoli/protein_embeddings.h5 --log /lisc/scratch/cube/pullen/testing.log --max_residues 16000 --max_seq_len 8000 --max_batch 100
