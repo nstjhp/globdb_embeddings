@@ -1,0 +1,17 @@
+mkdir -p mmseqoutput/tmp
+mmseqs createdb globdb_r226_all_prot_part_001_filtered1000AAmax_sorted_0_99.fasta mmseqoutput/globdbpart001db
+mmseqs linclust mmseqoutput/globdbpart001db mmseqoutput/clusters mmseqoutput/tmp --min-seq-id 0.9
+mmseqs createtsv mmseqoutput/globdbpart001db mmseqoutput/globdbpart001db mmseqoutput/clusters clusters.tsv
+cut -f1 clusters.tsv | uniq -c | less
+mmseqs rmdb mmseqoutput/clusters
+mmseqs rmdb mmseqoutput/globdbpart001db
+rm -rf mmseqoutput/*
+cut -f1 clusters.tsv | uniq -c | awk '$1 > 1' | sort -gr | less
+awk '{
+    count[$1]++; 
+    cluster[$1] = cluster[$1] ? cluster[$1] "," $2 : $2
+} END {
+    for (rep in count)
+        if (count[rep] > 1)
+            print rep, count[rep], cluster[rep]
+}' clusters.tsv > cluster_lists.tsv
